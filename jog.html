@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adivinhe o País</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        input {
+            padding: 10px;
+            font-size: 16px;
+            margin: 10px 0;
+            width: 100%;
+            max-width: 300px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        p {
+            margin-top: 20px;
+            text-align: center;
+        }
+        #arrow {
+            font-size: 50px;
+            margin-top: 20px;
+        }
+        #achievements {
+            margin-top: 20px;
+            text-align: center;
+            display: none; /* Escondido inicialmente */
+        }
+    </style>
+</head>
+<body>
+
+<h1>Adivinhe o País!</h1>
+<p>Tente adivinhar o país em que estou pensando.</p>
+<input type="text" id="guess" placeholder="Digite seu palpite" list="countryList" />
+<button onclick="checkGuess()">Adivinhar</button>
+<button id="playAgainBtn" onclick="resetGame()" style="display: none;">Jogar Novamente</button>
+<button id="showAchievementsBtn" onclick="toggleAchievements()">Ver Conquistas</button>
+<p id="result"></p>
+<div id="arrow"></div>
+<p id="hint" style="font-style: italic;"></p>
+<p id="correctAttempts" style="font-weight: bold;"></p>
+<div id="achievements">
+    <h2>Conquistas Desbloqueadas:</h2>
+    <ul id="achievementsList"></ul>
+</div>
+
+<datalist id="countryList">
+    <option value="Brasil"></option>
+    <option value="Argentina"></option>
+    <option value="Canadá"></option>
+    <option value="Alemanha"></option>
+    <option value="Japão"></option>
+    <option value="França"></option>
+    <option value="Índia"></option>
+    <option value="Egito"></option>
+    <option value="Austrália"></option>
+    <option value="Reino Unido"></option>
+    <option value="Estados Unidos"></option>
+    <option value="China"></option>
+    <option value="Rússia"></option>
+    <option value="Itália"></option>
+    <option value="México"></option>
+    <option value="Espanha"></option>
+    <option value="África do Sul"></option>
+    <option value="Nova Zelândia"></option>
+    <option value="Coreia do Sul"></option>
+    <option value="Turquia"></option>
+    <option value="Suécia"></option>
+</datalist>
+
+<script>
+    const countries = [
+        { name: "Brasil", lat: -14.2350, long: -51.9253, hint: "Famoso por seu carnaval e a Amazônia." },
+        { name: "Argentina", lat: -38.4161, long: -63.6167, hint: "Famoso pelo tango e a carne." },
+        { name: "Canadá", lat: 56.1304, long: -106.3468, hint: "Conhecido por sua beleza natural e maple syrup." },
+        { name: "Alemanha", lat: 51.1657, long: 10.4515, hint: "Famoso por suas cervejas e Oktoberfest." },
+        { name: "Japão", lat: 36.2048, long: 138.2529, hint: "Famoso por sua tecnologia e cultura milenar." },
+        { name: "França", lat: 46.6034, long: 1.8883, hint: "Famosa por sua culinária e a Torre Eiffel." },
+        { name: "Índia", lat: 20.5937, long: 78.9629, hint: "Famoso por seu Taj Mahal e diversidade cultural." },
+        { name: "Egito", lat: 26.8206, long: 30.8025, hint: "Conhecido pelas pirâmides e o rio Nilo." },
+        { name: "Austrália", lat: -25.2744, long: 133.7751, hint: "Famosa pela Grande Barreira de Corais." },
+        { name: "Reino Unido", lat: 55.3781, long: -3.4360, hint: "Conhecido por sua história e o Big Ben." },
+        { name: "Estados Unidos", lat: 37.0902, long: -95.7129, hint: "Famoso pelo sonho americano e a diversidade." },
+        { name: "China", lat: 35.8617, long: 104.1954, hint: "Conhecido pela Grande Muralha e sua rica história." },
+        { name: "Rússia", lat: 61.5240, long: 105.3188, hint: "Famosa por sua cultura e o inverno rigoroso." },
+        { name: "Itália", lat: 41.8719, long: 12.5674, hint: "Conhecida pela sua arte e culinária." },
+        { name: "México", lat: 23.6345, long: -102.5528, hint: "Famoso por suas praias e cultura vibrante." },
+        { name: "Espanha", lat: 40.4637, long: -3.7492, hint: "Conhecida por suas festas e flamenco." },
+        { name: "África do Sul", lat: -30.5595, long: 22.9375, hint: "Famosa pela vida selvagem e paisagens." },
+        { name: "Nova Zelândia", lat: -40.9006, long: 174.8860, hint: "Famosa pela natureza e como cenário de filmes." },
+        { name: "Coreia do Sul", lat: 35.9078, long: 127.7669, hint: "Conhecida por sua cultura pop e tecnologia." },
+        { name: "Turquia", lat: 38.9637, long: 35.2433, hint: "Famosa por sua história e culinária." },
+        { name: "Suécia", lat: 60.1282, long: 18.6435, hint: "Conhecida por seu design e natureza." }
+    ];
+
+    let randomCountry;
+    let attempts = 0;
+    let correctAttempts = 0; // Contador de acertos em uma única tentativa
+    let firstAttempt = true; // Variável para rastrear a primeira tentativa
+    const achievements = [];
+
+    function startGame() {
+        randomCountry = countries[Math.floor(Math.random() * countries.length)];
+        attempts = 0;
+        firstAttempt = true; // Reinicia o status da primeira tentativa
+        document.getElementById('guess').value = '';
+        document.getElementById('result').innerText = '';
+        document.getElementById('arrow').innerHTML = '';
+        document.getElementById('hint').innerText = randomCountry.hint;
+        document.getElementById('playAgainBtn').style.display = 'none';
+        document.getElementById('correctAttempts').innerText = `Acertos em uma única tentativa: ${correctAttempts}`;
+        document.getElementById('achievements').style.display = 'none'; // Esconde conquistas ao iniciar
+    }
+
+    function checkGuess() {
+        const userGuess = document.getElementById('guess').value;
+        attempts++;
+
+        if (userGuess.toLowerCase() === randomCountry.name.toLowerCase()) {
+            // Somente aumenta o contador de acertos em uma tentativa se for a primeira tentativa
+            if (firstAttempt) {
+                correctAttempts++;
+                firstAttempt = false; // Marca que não é mais a primeira tentativa
+            }
+            document.getElementById('result').innerText = `Parabéns! Você adivinhou o país ${randomCountry.name} em ${attempts} tentativas!`;
+            document.getElementById('playAgainBtn').style.display = 'inline';
+
+            // Verifica conquistas
+            checkAchievements();
+        } else {
+            provideHint(userGuess);
+        }
+
+        document.getElementById('correctAttempts').innerText = `Acertos em uma única tentativa: ${correctAttempts}`;
+    }
+
+    function checkAchievements() {
+        if (correctAttempts === 1 && !achievements.includes("Iniciante Aventureiro")) {
+            achievements.push("Iniciante Aventureiro");
+            alert("Você desbloqueou a conquista: Iniciante Aventureiro!");
+        }
+        if (correctAttempts === 5 && !achievements.includes("Explorador Hábil")) {
+            achievements.push("Explorador Hábil");
+            alert("Você desbloqueou a conquista: Explorador Hábil!");
+        }
+        if (correctAttempts === 10 && !achievements.includes("Mestre dos Países")) {
+            achievements.push("Mestre dos Países");
+            alert("Você desbloqueou a conquista: Mestre dos Países!");
+        }
+        if (correctAttempts === 15 && !achievements.includes("Globetrotter")) {
+            achievements.push("Globetrotter");
+            alert("Você desbloqueou a conquista: Globetrotter!");
+        }
+        if (correctAttempts === 20 && !achievements.includes("Sábio das Nações")) {
+            achievements.push("Sábio das Nações");
+            alert("Você desbloqueou a conquista: Sábio das Nações!");
+        }
+
+        updateAchievements();
+    }
+
+    function updateAchievements() {
+        const achievementsList = document.getElementById('achievementsList');
+        achievementsList.innerHTML = ''; // Limpa a lista atual
+        achievements.forEach(achievement => {
+            const li = document.createElement('li');
+            li.innerText = achievement;
+            achievementsList.appendChild(li);
+        });
+    }
+
+    function toggleAchievements() {
+        const achievementsDiv = document.getElementById('achievements');
+        achievementsDiv.style.display = achievementsDiv.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function provideHint(guess) {
+        const guessCountry = countries.find(country => country.name.toLowerCase() === guess.toLowerCase());
+
+        if (guessCountry) {
+            const distance = calculateDistance(guessCountry, randomCountry);
+            const direction = getDirection(guessCountry, randomCountry);
+            document.getElementById('result').innerText = `Errado! O país está a ${distance} metros.`;
+            document.getElementById('arrow').innerHTML = direction;
+        } else {
+            document.getElementById('result').innerText = 'Esse país não está na lista. Tente outro!';
+            document.getElementById('arrow').innerHTML = '';
+        }
+    }
+
+    function calculateDistance(country1, country2) {
+        const R = 6371000; // Raio da Terra em metros
+        const lat1 = country1.lat * Math.PI / 180;
+        const lat2 = country2.lat * Math.PI / 180;
+        const deltaLat = (country2.lat - country1.lat) * Math.PI / 180;
+        const deltaLong = (country2.long - country1.long) * Math.PI / 180;
+
+        const a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+                  Math.cos(lat1) * Math.cos(lat2) *
+                  Math.sin(deltaLong / 2) * Math.sin(deltaLong / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return Math.round(R * c); // Retorna a distância em metros
+    }
+
+    function getDirection(country1, country2) {
+        const deltaLat = country2.lat - country1.lat;
+        const deltaLong = country2.long - country1.long;
+
+        let direction = '';
+        if (deltaLat > 0) {
+            direction += '⬆️'; // Norte
+        } else if (deltaLat < 0) {
+            direction += '⬇️'; // Sul
+        }
+        if (deltaLong > 0) {
+            direction += '➡️'; // Leste
+        } else if (deltaLong < 0) {
+            direction += '⬅️'; // Oeste
+        }
+
+        return direction || 'Você está no país correto!';
+    }
+
+    function resetGame() {
+        startGame();
+    }
+
+    // Iniciar o jogo quando a página carrega
+    window.onload = startGame;
+</script>
+
+</body>
+</html>
